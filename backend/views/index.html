@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 代理服务</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Noto Sans SC', 'Press Start 2P', sans-serif; 
+            background: #0f0f23; 
+            color: #fff;
+            image-rendering: pixelated;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        .pixel-btn {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: #4a90d9;
+            color: #fff;
+            border: 3px solid #000;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 
+                4px 4px 0 0 #2a5090,
+                inset -2px -2px 0 0 #6ab0ff;
+            transition: all 0.1s;
+            border-radius: 4px;
+        }
+
+        .pixel-btn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 
+                2px 2px 0 0 #2a5090,
+                inset -2px -2px 0 0 #6ab0ff;
+        }
+
+        .pixel-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 
+                0px 0px 0 0 #2a5090,
+                inset -2px -2px 0 0 #6ab0ff;
+        }
+
+        .pixel-btn:disabled {
+            background: #6a6a8a;
+            box-shadow: 
+                4px 4px 0 0 #4a4a6a,
+                inset -2px -2px 0 0 #8a8aaa;
+            cursor: not-allowed;
+        }
+
+        .pixel-btn-success {
+            background: #2ecc71;
+            box-shadow: 
+                4px 4px 0 0 #1a8f4a,
+                inset -2px -2px 0 0 #5fdf9a;
+        }
+
+        .pixel-btn-danger {
+            background: #e74c3c;
+            box-shadow: 
+                4px 4px 0 0 #a93226,
+                inset -2px -2px 0 0 #ff6b6b;
+        }
+
+        .pixel-btn-warning {
+            background: #f39c12;
+            box-shadow: 
+                4px 4px 0 0 #d68910,
+                inset -2px -2px 0 0 #f5b041;
+        }
+
+        .pixel-btn-secondary {
+            background: #6a6a8a;
+            box-shadow: 
+                4px 4px 0 0 #4a4a6a,
+                inset -2px -2px 0 0 #8a8aaa;
+        }
+
+        .header { 
+            background: linear-gradient(180deg, #16213e 0%, #0f0f23 100%);
+            padding: 20px 30px;
+            border-bottom: 4px solid #000;
+            box-shadow: inset 0 -4px 0 #1a1a3e;
+        }
+
+        .header h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #4a90d9;
+            color: #00d9ff;
+            letter-spacing: 2px;
+        }
+
+        .nav { 
+            display: flex; 
+            gap: 12px; 
+            margin-top: 16px; 
+        }
+
+        .nav a { 
+            color: #fff; 
+            text-decoration: none; 
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 16px;
+            background: #16213e;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0 #000;
+            transition: all 0.1s;
+            border-radius: 4px;
+        }
+
+        .nav a:hover { 
+            background: #1f4068;
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .container { 
+            max-width: 900px; 
+            margin: 30px auto; 
+            padding: 0 20px; 
+        }
+
+        .card { 
+            padding: 24px; 
+            margin-bottom: 24px;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .card-title { 
+            font-size: 18px; 
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px dashed;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .card-config { 
+            background: #1a1a3e;
+        }
+        .card-config::before { background: linear-gradient(90deg, #ff6b6b, #feca57, #ff9ff3, #54a0ff, #5f27cd); }
+        .card-config .card-title { color: #ff6b6b; border-color: rgba(255,107,107,0.3); }
+
+        .card-chat { 
+            background: #1a2a3e;
+        }
+        .card-chat::before { background: linear-gradient(90deg, #00d9ff, #00ff88, #ffff00, #ff8800, #ff0088); }
+        .card-chat .card-title { color: #00d9ff; border-color: rgba(0,217,255,0.3); }
+
+        .config-selector {
+            background: #0f0f23;
+            border: 3px solid #000;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+        }
+
+        .config-selector label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #aaa;
+        }
+
+        .config-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 3px solid #000;
+            background: #1a1a3e;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .config-selector select:focus {
+            outline: none;
+            border-color: #4a90d9;
+        }
+
+        .config-info { 
+            background: #0f0f23; 
+            border: 3px solid #000;
+            padding: 16px; 
+            font-size: 14px;
+            line-height: 2;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-radius: 4px;
+        }
+
+        .config-info p { 
+            margin: 10px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .config-info strong { 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .info-label {
+            font-size: 14px;
+            font-weight: bold;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+        .info-value {
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .chat-box { 
+            display: flex; 
+            flex-direction: column; 
+            height: 400px; 
+            border: 4px solid #000;
+            background: #0f0f23;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 4px #1a1a3e;
+            border-radius: 4px;
+        }
+
+        .chat-messages { 
+            flex: 1; 
+            padding: 16px; 
+            overflow-y: auto;
+            background: repeating-linear-gradient(
+                0deg,
+                #0f0f23 0px,
+                #0f0f23 24px,
+                #1a1a3e 24px,
+                #1a1a3e 25px
+            );
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .message { 
+            margin-bottom: 16px; 
+            padding: 14px; 
+            border: 3px solid #000;
+            max-width: 85%;
+            font-size: 14px;
+            line-height: 1.8;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-radius: 4px;
+        }
+
+        .message.user { 
+            background: linear-gradient(135deg, #4a90d9, #357abd); 
+            color: #fff; 
+            margin-left: auto;
+            box-shadow: 
+                4px 4px 0 #2a5090,
+                inset -2px -2px 0 #6ab0ff;
+        }
+
+        .message.bot { 
+            background: linear-gradient(135deg, #2d2d4e, #1a1a3e); 
+            color: #e0e0e0; 
+            margin-right: auto;
+            box-shadow: 
+                4px 4px 0 #1a1a2e,
+                inset -2px -2px 0 #4a4a6e;
+        }
+
+        .chat-input { 
+            display: flex; 
+            gap: 12px; 
+            padding: 16px; 
+            border-top: 4px solid #000;
+            background: #1a1a3e;
+        }
+
+        .chat-input input { 
+            flex: 1; 
+            padding: 14px; 
+            border: 4px solid #000;
+            background: #0f0f23;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 14px;
+            box-shadow: inset 3px 3px 0 #1a1a3e;
+            border-radius: 4px;
+        }
+
+        .chat-input input::placeholder {
+            color: #4a4a6a;
+            font-size: 14px;
+        }
+
+        .loading { 
+            color: #00d9ff; 
+            font-style: normal;
+            animation: blink 0.5s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .error { 
+            color: #ff6b6b; 
+            padding: 14px; 
+            background: #2a1a1a;
+            border: 3px solid #ff0000;
+            font-size: 14px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-radius: 4px;
+        }
+
+        .config-modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(0,0,0,0.9); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        .config-modal-content { 
+            background: #1a1a3e;
+            border: 4px solid #000;
+            padding: 24px; 
+            max-width: 600px; 
+            width: 90%; 
+            max-height: 90vh; 
+            overflow-y: auto;
+            box-shadow: 12px 12px 0 #000;
+            border-radius: 8px;
+        }
+
+        .config-modal-content h2 { 
+            margin-bottom: 20px; 
+            color: #00d9ff;
+            font-size: 18px;
+        }
+
+        .config-section { 
+            margin-bottom: 20px; 
+        }
+
+        .config-section h3 { 
+            margin-bottom: 10px; 
+            color: #ff9ff3;
+            font-size: 16px;
+        }
+
+        .config-code { 
+            background: #0f0f23;
+            border: 3px solid #000;
+            padding: 14px; 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            overflow-x: auto; 
+            white-space: pre-wrap; 
+            word-break: break-all;
+            color: #00ff88;
+            box-shadow: inset 3px 3px 0 #1a1a3e;
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 4px;
+        }
+
+        .config-close { 
+            margin-top: 16px; 
+            text-align: right; 
+        }
+
+        .empty-config {
+            text-align: center;
+            color: #6a6a8a;
+            padding: 20px;
+            font-size: 16px;
+        }
+
+        .empty-config a {
+            color: #00d9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LLM 代理服务</h1>
+        <div class="nav">
+            <a href="/">💬 对话测试</a>
+            <a href="/config">⚙️ 配置管理</a>
+            <a href="/logs">📋 调用日志</a>
+            <a href="/statistics">📊 统计分析</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card card-config">
+            <h2 class="card-title">⚡ 选择配置</h2>
+            <div class="config-selector">
+                <label>🤖 选择激活的配置进行测试</label>
+                <select id="configSelect" onchange="onConfigChange()">
+                    <option value="">-- 加载中 --</option>
+                </select>
+            </div>
+            <div class="config-info" id="configInfo">
+                <p style="color: #ff6b6b; font-size: 16px;">请选择一个配置</p>
+            </div>
+        </div>
+
+        <div class="card card-chat">
+            <h2 class="card-title">💬 对话测试</h2>
+            <div class="chat-box">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot">👋 你好！选择配置后输入消息开始测试吧。</div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="输入消息..." disabled>
+                    <button class="pixel-btn" id="sendBtn" onclick="sendMessage()" disabled>🚀 发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="configModal" class="config-modal">
+        <div class="config-modal-content">
+            <h2>⚙️ API 配置信息</h2>
+            <div id="configModalContent">
+            </div>
+            <div class="config-close">
+                <button class="pixel-btn" onclick="closeConfigModal()">❌ 关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let activeConfigs = [];
+        let currentConfig = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadActiveConfigs();
+            bindEvents();
+        });
+
+        function bindEvents() {
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) { if (e.key === 'Enter') sendMessage(); });
+        }
+
+        async function loadActiveConfigs() {
+            try {
+                const response = await fetch('/api/configs/active');
+                if (response.ok) {
+                    activeConfigs = await response.json();
+                    renderConfigSelect();
+                } else {
+                    activeConfigs = [];
+                    renderConfigSelect();
+                }
+            } catch (error) {
+                console.error(error);
+                activeConfigs = [];
+                renderConfigSelect();
+            }
+        }
+
+        function renderConfigSelect() {
+            const select = document.getElementById('configSelect');
+            
+            if (activeConfigs.length === 0) {
+                select.innerHTML = '<option value="">-- 暂无激活的配置 --</option>';
+                document.getElementById('configInfo').innerHTML = 
+                    '<div class="empty-config">❌ 暂无激活的配置！<a href="/config">去配置管理激活配置</a></div>';
+                return;
+            }
+
+            select.innerHTML = '<option value="">-- 请选择配置 --</option>' +
+                activeConfigs.map(function(c) {
+                    return '<option value="' + c.id + '">' + c.name + '</option>';
+                }).join('');
+
+            if (activeConfigs.length >= 1) {
+                select.value = activeConfigs[0].id;
+                onConfigChange();
+            }
+        }
+
+        function onConfigChange() {
+            const select = document.getElementById('configSelect');
+            const configId = parseInt(select.value);
+            
+            if (!configId) {
+                currentConfig = null;
+                renderConfig(null);
+                return;
+            }
+
+            currentConfig = activeConfigs.find(function(c) { return c.id === configId; });
+            renderConfig(currentConfig);
+        }
+
+        function renderConfig(config) {
+            const configInfo = document.getElementById('configInfo');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+
+            if (config) {
+                configInfo.innerHTML = '<p><span class="info-label" style="color:#ff6b6b;">🤖 模型:</span>' +
+                    '<span class="info-value" style="color:#00d9ff;">' + config.name + '</span></p>' +
+                    '<p><span class="info-label" style="color:#feca57;">🎯 目标地址:</span>' +
+                    '<span class="info-value" style="color:#aaa;word-break:break-all;">' + config.target_url + '</span></p>' +
+                    '<p><span class="info-label" style="color:#ff9ff3;">🔑 App-Key:</span>' +
+                    '<span class="info-value" style="color:#54a0ff;">' + config.app_key + '</span></p>' +
+                    '<p><span class="info-label" style="color:#5f27cd;">⚙️ 类型:</span>' +
+                    '<span class="info-value" style="color:#2ecc71;">' + config.detection_type + '</span></p>' +
+                    '<p><span class="info-label" style="color:#00ff88;">📝 ID:</span>' +
+                    '<span class="info-value" style="color:#f1c40f;">' + config.detection_id + '</span></p>' +
+                    '<div style="margin-top: 16px;"><button class="pixel-btn" onclick="showConfigModal()">📝 查看API配置</button></div>';
+
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+            } else {
+                configInfo.innerHTML = '<p style="color: #ff6b6b; font-size: 16px;">❌ 请选择一个配置！' +
+                    '<a href="/config" style="color: #00d9ff; font-size: 16px;">⚡ 去配置</a></p>';
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+            }
+        }
+
+        function showConfigModal() {
+            if (!currentConfig) return;
+            const baseUrl = window.location.origin;
+            document.getElementById('configModal').style.display = 'flex';
+            document.getElementById('configModalContent').innerHTML = '<div class="config-section">' +
+                '<h3>🤖 OpenAI 格式</h3>' +
+                '<div class="config-code">BASE_URL: ' + baseUrl + '/v1\nAPI_KEY: 任意值或留空\nMODEL: ' + currentConfig.name + '\n\nCURL示例:\ncurl -X POST ' + baseUrl + '/v1/chat/completions \\ \n  -H "Content-Type: application/json" \\ \n  -H "Authorization: Bearer dummy" \\ \n  -d \'{"config_id": ' + currentConfig.id + ', "model": "' + currentConfig.name + '", "messages": [{"role": "user", "content": "你好"}], "stream": false}\' </div></div>' +
+                '<div class="config-section">' +
+                '<h3>🤖 Anthropic 格式</h3>' +
+                '<div class="config-code">BASE_URL: ' + baseUrl + '\nAPI_KEY: 任意值或留空\nMODEL: ' + currentConfig.name + '\n\nCURL示例:\ncurl -X POST ' + baseUrl + '/v1/messages \\ \n  -H "Content-Type: application/json" \\ \n  -H "x-api-key: dummy" \\ \n  -H "anthropic-version: 2023-06-01" \\ \n  -d \'{"config_id": ' + currentConfig.id + ', "model": "' + currentConfig.name + '", "messages": [{"role": "user", "content": "你好"}], "max_tokens": 1024}\' </div></div>';
+        }
+
+        function closeConfigModal() {
+            document.getElementById('configModal').style.display = 'none';
+        }
+
+        window.onclick = function(e) {
+            const modal = document.getElementById('configModal');
+            if (e.target === modal) {
+                closeConfigModal();
+            }
+        };
+
+        let debugMode = true;
+
+        async function sendMessage() {
+            const message = document.getElementById('messageInput').value.trim();
+            if (!message) return;
+
+            const chatMessages = document.getElementById('chatMessages');
+            const sendBtn = document.getElementById('sendBtn');
+
+            if (!currentConfig) {
+                addMessage(chatMessages, '❌ 请先选择一个配置！', 'bot');
+                return;
+            }
+
+            addMessage(chatMessages, message, 'user');
+            document.getElementById('messageInput').value = '';
+            sendBtn.disabled = true;
+
+            const requestBody = {
+                config_id: currentConfig.id,
+                model: currentConfig.name,
+                messages: [{"role": "user", "content": message}],
+                stream: false
+            };
+
+            const headersInfo = [];
+            if (currentConfig.app_key) headersInfo.push('App-Key: ' + currentConfig.app_key);
+            if (currentConfig.app_secret) headersInfo.push('App-Sign: ' + currentConfig.app_secret);
+            headersInfo.push('Detection-Type: ' + (currentConfig.detection_type || 'extract'));
+            if (currentConfig.detection_id) headersInfo.push('Detection-Id: ' + currentConfig.detection_id);
+
+            if (debugMode) {
+                let debugInfo = '🔍 请求信息:\n配置ID: ' + currentConfig.id + '\nURL: ' + currentConfig.target_url + '\n';
+                if (headersInfo.length > 0) {
+                    debugInfo += 'Headers:\n' + headersInfo.join('\n') + '\n';
+                }
+                debugInfo += '请求体:\n' + JSON.stringify(requestBody, null, 2);
+                addMessage(chatMessages, debugInfo, 'bot');
+            }
+
+            addMessage(chatMessages, '⏳ 处理中...', 'bot');
+
+            try {
+                const response = await fetch('/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const responseText = await response.text();
+                const messages = chatMessages.querySelectorAll('.message');
+                if (messages.length > 0) {
+                    chatMessages.removeChild(messages[messages.length - 1]);
+                }
+
+                if (debugMode) {
+                    addMessage(chatMessages, '📤 响应状态: ' + response.status + ' ' + response.statusText + '\n响应内容:\n' + responseText.substring(0, 2000), 'bot');
+                }
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    addMessage(chatMessages, '⚠️ 响应不是JSON格式:\n' + responseText.substring(0, 1000), 'bot');
+                    return;
+                }
+
+                if (!response.ok) {
+                    addMessage(chatMessages, '❌ 请求错误 (' + response.status + '): ' + (data.detail || data.error || JSON.stringify(data)), 'bot');
+                } else if (data.error) {
+                    addMessage(chatMessages, '❌ 错误: ' + (data.error.message || data.error), 'bot');
+                } else if (data.choices && data.choices[0]) {
+                    const content = data.choices[0].message.content;
+                    addMessage(chatMessages, content || '⚠️ 无响应内容', 'bot');
+                } else if (data.detail) {
+                    addMessage(chatMessages, '❌ 错误: ' + data.detail, 'bot');
+                } else {
+                    addMessage(chatMessages, JSON.stringify(data, null, 2), 'bot');
+                }
+            } catch (error) {
+                try {
+                    const messages = chatMessages.querySelectorAll('.message');
+                    if (messages.length > 0) {
+                        chatMessages.removeChild(messages[messages.length - 1]);
+                    }
+                } catch (e) {}
+                addMessage(chatMessages, '❌ 请求失败: ' + error.message, 'bot');
+            } finally {
+                sendBtn.disabled = false;
+                document.getElementById('messageInput').focus();
+            }
+        }
+
+        function addMessage(chatMessages, content, type) {
+            const div = document.createElement('div');
+            div.className = 'message ' + type.split(' ')[0];
+            div.textContent = content;
+            chatMessages.appendChild(div);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    </script>
+</body>
+</html>

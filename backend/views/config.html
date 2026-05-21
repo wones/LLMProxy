@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 代理服务 - 配置管理</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Noto Sans SC', 'Press Start 2P', sans-serif; 
+            background: #0f0f23; 
+            color: #fff;
+            image-rendering: pixelated;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        .pixel-btn {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: #4a90d9;
+            color: #fff;
+            border: 3px solid #000;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 
+                4px 4px 0 0 #2a5090,
+                inset -2px -2px 0 0 #6ab0ff;
+            transition: all 0.1s;
+            border-radius: 4px;
+        }
+
+        .pixel-btn:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 
+                2px 2px 0 0 #2a5090,
+                inset -2px -2px 0 0 #6ab0ff;
+        }
+
+        .pixel-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: 
+                0px 0px 0 0 #2a5090,
+                inset -2px -2px 0 0 #6ab0ff;
+        }
+
+        .pixel-btn-success {
+            background: #2ecc71;
+            box-shadow: 
+                4px 4px 0 0 #1a8f4a,
+                inset -2px -2px 0 0 #5fdf9a;
+        }
+
+        .pixel-btn-danger {
+            background: #e74c3c;
+            box-shadow: 
+                4px 4px 0 0 #a93226,
+                inset -2px -2px 0 0 #ff6b6b;
+        }
+
+        .pixel-btn-warning {
+            background: #f39c12;
+            box-shadow: 
+                4px 4px 0 0 #d68910,
+                inset -2px -2px 0 0 #f5b041;
+        }
+
+        .pixel-btn-secondary {
+            background: #6a6a8a;
+            box-shadow: 
+                4px 4px 0 0 #4a4a6a,
+                inset -2px -2px 0 0 #8a8aaa;
+        }
+
+        .header { 
+            background: linear-gradient(180deg, #16213e 0%, #0f0f23 100%);
+            padding: 20px 30px;
+            border-bottom: 4px solid #000;
+            box-shadow: inset 0 -4px 0 #1a1a3e;
+        }
+
+        .header h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #4a90d9;
+            color: #00d9ff;
+            letter-spacing: 2px;
+        }
+
+        .nav { 
+            display: flex; 
+            gap: 12px; 
+            margin-top: 16px; 
+        }
+
+        .nav a { 
+            color: #fff; 
+            text-decoration: none; 
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 16px;
+            background: #16213e;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0 #000;
+            transition: all 0.1s;
+            border-radius: 4px;
+        }
+
+        .nav a:hover { 
+            background: #1f4068;
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .container { 
+            max-width: 1200px; 
+            margin: 30px auto; 
+            padding: 0 20px; 
+        }
+
+        .card { 
+            padding: 24px; 
+            margin-bottom: 24px;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .card-title { 
+            font-size: 18px; 
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px dashed;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .card-form { 
+            background: #1a1a3e;
+        }
+        .card-form::before { background: linear-gradient(90deg, #ff6b6b, #feca57, #ff9ff3, #54a0ff, #5f27cd); }
+        .card-form .card-title { color: #ff6b6b; border-color: rgba(255,107,107,0.3); }
+
+        .card-list { 
+            background: #1a2a3e;
+        }
+        .card-list::before { background: linear-gradient(90deg, #00d9ff, #00ff88, #ffff00, #ff8800, #ff0088); }
+        .card-list .card-title { color: #00d9ff; border-color: rgba(0,217,255,0.3); }
+
+        .card-active { 
+            background: #1a3e2a;
+        }
+        .card-active::before { background: linear-gradient(90deg, #2ecc71, #27ae60, #1abc9c, #16a085, #f1c40f); }
+        .card-active .card-title { color: #2ecc71; border-color: rgba(46,204,113,0.3); }
+
+        .form-group { 
+            margin-bottom: 20px; 
+        }
+
+        .form-group label { 
+            display: block; 
+            margin-bottom: 10px; 
+            font-size: 14px;
+            font-weight: bold;
+            color: #aaa;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .form-group input,
+        .form-group textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 3px solid #000;
+            background: #0f0f23;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 14px;
+            box-shadow: inset 2px 2px 0 #1a1a3e;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-radius: 4px;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #4a4a6a;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .btn-group { 
+            display: flex; 
+            gap: 12px; 
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 16px;
+            font-size: 14px;
+            min-width: 800px;
+        }
+
+        th, td { 
+            padding: 14px 10px; 
+            text-align: left; 
+            border-bottom: 2px solid #3a3a5e;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        th { 
+            background: #0f0f23; 
+            color: #4a90d9;
+            border-bottom: 4px solid #000;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        td {
+            max-width: 250px;
+            font-size: 14px;
+        }
+
+        .badge { 
+            display: inline-block; 
+            padding: 6px 12px; 
+            border: 2px solid #000;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+            border-radius: 4px;
+        }
+
+        .badge.active { 
+            background: #2ecc71; 
+            color: #000;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .badge.inactive { 
+            background: #6a6a8a; 
+            color: #fff;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .error { 
+            color: #ff6b6b; 
+            padding: 14px; 
+            background: #2a1a1a;
+            border: 3px solid #ff0000;
+            font-size: 14px;
+            margin-bottom: 16px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-radius: 4px;
+        }
+
+        .tabs { 
+            display: flex; 
+            gap: 12px; 
+            margin-bottom: 20px; 
+        }
+
+        .tab { 
+            font-family: 'Noto Sans SC', sans-serif;
+            padding: 12px 20px; 
+            border: 3px solid #000;
+            background: #0f0f23;
+            color: #aaa;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 3px 3px 0 #000;
+            transition: all 0.1s;
+            white-space: nowrap;
+            border-radius: 4px;
+        }
+
+        .tab:hover {
+            background: #1a1a3e;
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .tab.active { 
+            background: #4a90d9; 
+            color: #fff;
+        }
+
+        .tab.tab-active { 
+            background: #2ecc71; 
+            color: #000;
+        }
+
+        .hidden { 
+            display: none; 
+        }
+
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: rgba(0,0,0,0.9); 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content { 
+            background: #1a1a3e;
+            border: 4px solid #000;
+            padding: 24px; 
+            max-width: 600px; 
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 12px 12px 0 #000;
+            border-radius: 8px;
+        }
+
+        .modal-content h3 {
+            font-size: 18px;
+            color: #ff9ff3;
+            margin-bottom: 16px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .parse-result {
+            background: #0f0f23;
+            border: 2px solid #000;
+            padding: 14px;
+            font-size: 14px;
+            margin-top: 16px;
+            border-radius: 4px;
+        }
+
+        .parse-result p {
+            margin: 8px 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .parse-result input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #000;
+            background: #1a1a3e;
+            color: #fff;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-size: 14px;
+            margin: 6px 0;
+            box-sizing: border-box;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-radius: 4px;
+        }
+
+        .active-config-card {
+            background: #0f0f23;
+            border: 2px solid #2ecc71;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .active-config-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .active-config-name {
+            color: #2ecc71;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .active-config-url {
+            color: #aaa;
+            font-size: 12px;
+            word-break: break-all;
+        }
+
+        .active-config-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .empty-active {
+            text-align: center;
+            color: #6a6a8a;
+            padding: 40px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LLM 代理服务</h1>
+        <div class="nav">
+            <a href="/">💬 对话测试</a>
+            <a href="/config">⚙️ 配置管理</a>
+            <a href="/logs">📋 调用日志</a>
+            <a href="/statistics">📊 统计分析</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="errorContainer"></div>
+
+        <div class="card card-active">
+            <h2 class="card-title">✅ 已激活配置</h2>
+            <div id="activeConfigsContainer">
+                <div class="empty-active">加载中...</div>
+            </div>
+        </div>
+
+        <div class="card card-form">
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('create')">➕ 新建配置</button>
+                <button class="tab" onclick="showTab('parse')">📥 从CURL导入</button>
+            </div>
+
+            <div id="create" class="tab-content">
+                <h2 class="card-title">✨ 创建新配置</h2>
+                <form id="createForm">
+                    <div class="form-group">
+                        <label>🤖 模型名称</label>
+                        <input type="text" name="name" id="createName" required placeholder="例如: glm-5">
+                    </div>
+                    <div class="form-group">
+                        <label>🎯 目标地址 (URL)</label>
+                        <input type="text" name="target_url" id="createTargetUrl" required placeholder="http://xxx/v1/chat/completions">
+                    </div>
+                    <div class="form-group">
+                        <label>🔑 App-Key</label>
+                        <input type="text" name="app_key" id="createAppKey" required placeholder="你的App-Key">
+                    </div>
+                    <div class="form-group">
+                        <label>🔐 App-Sign (签名)</label>
+                        <input type="text" name="app_secret" id="createAppSecret" required placeholder="你的App-Sign">
+                    </div>
+                    <div class="form-group">
+                        <label>⚙️ Detection-Type</label>
+                        <input type="text" name="detection_type" id="createDetectionType" value="extract" placeholder="extract">
+                    </div>
+                    <div class="form-group">
+                        <label>📝 Detection-Id</label>
+                        <input type="text" name="detection_id" id="createDetectionId" placeholder="detection_trace_xxx">
+                    </div>
+                    <div class="form-group">
+                        <label>🌊 流式响应</label>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="stream" id="createStream" style="width: 20px; height: 20px;">
+                            <span style="font-size: 13px;">启用流式响应（模拟打字效果）</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="pixel-btn pixel-btn-success">✅ 创建配置</button>
+                </form>
+            </div>
+
+            <div id="parse" class="tab-content hidden">
+                <h2 class="card-title">📥 从CURL导入配置</h2>
+                <div class="form-group">
+                    <label>📋 CURL 命令</label>
+                    <textarea id="curlInput" placeholder="粘贴 CURL 命令..."></textarea>
+                </div>
+                <button class="pixel-btn pixel-btn-secondary" onclick="parseCurl()">🔍 解析CURL</button>
+                <div id="parseResult"></div>
+            </div>
+        </div>
+
+        <div class="card card-list">
+            <h2 class="card-title">📋 全部配置</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>🤖 模型</th>
+                            <th>🎯 目标地址</th>
+                            <th>🔑 App-Key</th>
+                            <th>📊 状态</th>
+                            <th>🌊 响应模式</th>
+                            <th>⚡ 操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="configsBody">
+                        <tr><td colspan="6" style="text-align: center; color: #6a6a8a; font-size: 16px;">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ 编辑配置</h3>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label>🤖 模型名称</label>
+                    <input type="text" name="name" id="editName">
+                </div>
+                <div class="form-group">
+                    <label>🎯 目标地址</label>
+                    <input type="text" name="target_url" id="editTargetUrl">
+                </div>
+                <div class="form-group">
+                    <label>🔑 App-Key</label>
+                    <input type="text" name="app_key" id="editAppKey">
+                </div>
+                <div class="form-group">
+                    <label>🔐 App-Sign</label>
+                    <input type="text" name="app_secret" id="editAppSecret">
+                </div>
+                <div class="form-group">
+                    <label>⚙️ Detection-Type</label>
+                    <input type="text" name="detection_type" id="editDetectionType">
+                </div>
+                <div class="form-group">
+                    <label>📝 Detection-Id</label>
+                    <input type="text" name="detection_id" id="editDetectionId">
+                </div>
+                <div class="form-group">
+                    <label>🌊 流式响应</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="stream" id="editStream" style="width: 20px; height: 20px;">
+                        <span style="font-size: 13px;">启用流式响应（模拟打字效果）</span>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button type="submit" class="pixel-btn">💾 保存</button>
+                    <button type="button" class="pixel-btn pixel-btn-secondary" onclick="closeModal()">❌ 取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let parseData = null;
+        let allConfigs = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfigs();
+            
+            document.getElementById('createForm').addEventListener('submit', createConfig);
+            document.getElementById('editForm').addEventListener('submit', updateConfig);
+        });
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.add('hidden'); });
+            document.querySelector('.tab[onclick="showTab(\'' + tabName + '\')"]').classList.add('active');
+            document.getElementById(tabName).classList.remove('hidden');
+        }
+
+        async function loadConfigs() {
+            try {
+                const response = await fetch('/api/configs');
+                allConfigs = await response.json();
+                renderConfigs(allConfigs);
+                renderActiveConfigs(allConfigs);
+            } catch (error) {
+                document.getElementById('errorContainer').innerHTML = 
+                    '<div class="error">❌ 加载配置失败: ' + error.message + '</div>';
+                document.getElementById('configsBody').innerHTML = 
+                    '<tr><td colspan="5" style="text-align: center; color: #6a6a8a; font-size: 16px;">❌ 加载失败</td></tr>';
+            }
+        }
+
+        function renderActiveConfigs(configs) {
+            const container = document.getElementById('activeConfigsContainer');
+            const activeConfigs = configs.filter(function(c) { return c.is_active; });
+            
+            if (activeConfigs.length === 0) {
+                container.innerHTML = '<div class="empty-active">❌ 暂无激活的配置，请在下方配置列表中激活配置</div>';
+                return;
+            }
+
+            container.innerHTML = activeConfigs.map(function(config) {
+                return '<div class="active-config-card">' +
+                    '<div class="active-config-info">' +
+                        '<div class="active-config-name">🤖 ' + config.name + '</div>' +
+                        '<div class="active-config-url">🎯 ' + config.target_url + '</div>' +
+                    '</div>' +
+                    '<div class="active-config-actions">' +
+                        '<button class="pixel-btn pixel-btn-secondary" onclick="toggleConfig(' + config.id + ', true)">⏸️ 停用</button>' +
+                        '<button class="pixel-btn pixel-btn-warning" onclick="editConfig(' + JSON.stringify(config).replace(/"/g, '&quot;') + ')">✏️ 编辑</button>' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+        }
+
+        function renderConfigs(configs) {
+            const tbody = document.getElementById('configsBody');
+            if (!configs || configs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #6a6a8a; font-size: 16px;">❌ 暂无配置</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = configs.map(function(config) {
+                return '<tr>' +
+                    '<td style="color:#00d9ff; font-weight:bold;">' + config.name + '</td>' +
+                    '<td style="color:#aaa; word-break:break-all;">' + config.target_url + '</td>' +
+                    '<td style="color:#ff9ff3;">' + config.app_key + '</td>' +
+                    '<td><span class="badge ' + (config.is_active ? 'active' : 'inactive') + '">' + (config.is_active ? '✅ 已激活' : '❌ 未激活') + '</span></td>' +
+                    '<td><span class="badge ' + (config.stream ? 'active' : 'inactive') + '">' + (config.stream ? '🌊 流式' : '📄 非流式') + '</span></td>' +
+                    '<td>' +
+                        '<div class="btn-group">' +
+                            '<button class="pixel-btn ' + (config.is_active ? 'pixel-btn-secondary' : 'pixel-btn-success') + '" onclick="toggleConfig(' + config.id + ', ' + config.is_active + ')">' +
+                                (config.is_active ? '⏸️ 停用' : '▶️ 激活') +
+                            '</button>' +
+                            '<button class="pixel-btn pixel-btn-warning" onclick="editConfig(' + JSON.stringify(config).replace(/"/g, '&quot;') + ')">✏️ 编辑</button>' +
+                            '<button class="pixel-btn pixel-btn-danger" onclick="deleteConfig(' + config.id + ')">🗑️ 删除</button>' +
+                        '</div>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        async function createConfig(event) {
+            event.preventDefault();
+            
+            const config = {
+                name: document.getElementById('createName').value,
+                target_url: document.getElementById('createTargetUrl').value,
+                app_key: document.getElementById('createAppKey').value,
+                app_secret: document.getElementById('createAppSecret').value,
+                detection_type: document.getElementById('createDetectionType').value,
+                detection_id: document.getElementById('createDetectionId').value,
+                stream: document.getElementById('createStream').checked
+            };
+
+            try {
+                const response = await fetch('/api/configs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (response.ok) {
+                    document.getElementById('createForm').reset();
+                    loadConfigs();
+                } else {
+                    const data = await response.json();
+                    document.getElementById('errorContainer').innerHTML = 
+                        '<div class="error">❌ 创建失败: ' + (data.detail || data.error || '未知错误') + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('errorContainer').innerHTML = 
+                    '<div class="error">❌ 创建失败: ' + error.message + '</div>';
+            }
+        }
+
+        async function parseCurl() {
+            const curlCommand = document.getElementById('curlInput').value;
+            if (!curlCommand.trim()) return;
+
+            try {
+                const response = await fetch('/api/parser/curl', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ curl_command: curlCommand })
+                });
+
+                const data = await response.json();
+                parseData = data;
+                if (response.ok) {
+                    const html = '<div class="parse-result">' +
+                        '<p style="color:#00d9ff; font-size:16px; font-weight:bold;">✅ 解析结果:</p>' +
+                        '<p>🤖 模型: <input type="text" id="parseModelName" value="' + (data.model_name || '') + '" readonly></p>' +
+                        '<p>🎯 地址: <input type="text" id="parseUrl" value="' + (data.target_url || '') + '" readonly></p>' +
+                        '<p>🔑 Key: <input type="text" id="parseAppKey" value="' + (data.app_key || '') + '" readonly></p>' +
+                        '<p>🔐 Sign: <input type="text" id="parseAppSign" value="' + (data.app_sign || '') + '" readonly></p>' +
+                        '<p>⚙️ 类型: <input type="text" id="parseDetectionType" value="' + (data.detection_type || '') + '" readonly></p>' +
+                        '<p>📝 ID: <input type="text" id="parseDetectionId" value="' + (data.detection_id || '') + '" readonly></p>' +
+                        '<button class="pixel-btn pixel-btn-success" onclick="applyParseResult()" style="margin-top:12px;">✨ 应用到表单</button>' +
+                        '</div>';
+                    document.getElementById('parseResult').innerHTML = html;
+                } else {
+                    document.getElementById('parseResult').innerHTML = '<div class="error">❌ 解析失败: ' + (data.error || data.detail || '未知错误') + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('parseResult').innerHTML = '<div class="error">❌ 解析失败: ' + error.message + '</div>';
+            }
+        }
+
+        function applyParseResult() {
+            if (parseData) {
+                document.getElementById('createName').value = parseData.model_name || '';
+                document.getElementById('createTargetUrl').value = parseData.target_url || '';
+                document.getElementById('createAppKey').value = parseData.app_key || '';
+                document.getElementById('createAppSecret').value = parseData.app_sign || '';
+                document.getElementById('createDetectionType').value = parseData.detection_type || '';
+                document.getElementById('createDetectionId').value = parseData.detection_id || '';
+                showTab('create');
+            }
+        }
+
+        function editConfig(config) {
+            document.getElementById('editId').value = config.id;
+            document.getElementById('editName').value = config.name;
+            document.getElementById('editTargetUrl').value = config.target_url;
+            document.getElementById('editAppKey').value = config.app_key;
+            document.getElementById('editAppSecret').value = config.app_secret;
+            document.getElementById('editDetectionType').value = config.detection_type;
+            document.getElementById('editDetectionId').value = config.detection_id;
+            document.getElementById('editStream').checked = config.stream || false;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        async function updateConfig(event) {
+            event.preventDefault();
+            const id = document.getElementById('editId').value;
+            const config = {
+                name: document.getElementById('editName').value,
+                target_url: document.getElementById('editTargetUrl').value,
+                app_key: document.getElementById('editAppKey').value,
+                app_secret: document.getElementById('editAppSecret').value,
+                detection_type: document.getElementById('editDetectionType').value,
+                detection_id: document.getElementById('editDetectionId').value,
+                stream: document.getElementById('editStream').checked
+            };
+
+            try {
+                const response = await fetch('/api/configs/' + id, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+
+                if (response.ok) {
+                    closeModal();
+                    loadConfigs();
+                } else {
+                    const data = await response.json();
+                    alert('❌ 更新失败: ' + (data.detail || data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('❌ 更新失败: ' + error.message);
+            }
+        }
+
+        async function toggleConfig(id, isActive) {
+            if (isActive) {
+                if (!confirm('❓ 确定停用此配置？')) return;
+            }
+            
+            try {
+                const response = await fetch('/api/configs/' + id + '/toggle', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    loadConfigs();
+                } else {
+                    const data = await response.json();
+                    alert('❌ 操作失败: ' + (data.detail || data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('❌ 操作失败: ' + error.message);
+            }
+        }
+
+        async function deleteConfig(id) {
+            if (!confirm('❓ 确定删除此配置？')) return;
+            try {
+                const response = await fetch('/api/configs/' + id, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadConfigs();
+                } else {
+                    const data = await response.json();
+                    alert('❌ 删除失败: ' + (data.detail || data.error || '未知错误'));
+                }
+            } catch (error) {
+                alert('❌ 删除失败: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        window.onclick = function(e) {
+            if (e.target === document.getElementById('editModal')) closeModal();
+        };
+    </script>
+</body>
+</html>

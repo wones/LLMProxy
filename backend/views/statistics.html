@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM 代理服务 - 统计分析</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Noto Sans SC', 'Press Start 2P', sans-serif; 
+            background: #0f0f23; 
+            color: #fff;
+            image-rendering: pixelated;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        .header { 
+            background: linear-gradient(180deg, #16213e 0%, #0f0f23 100%);
+            padding: 20px 30px;
+            border-bottom: 4px solid #000;
+            box-shadow: inset 0 -4px 0 #1a1a3e;
+        }
+
+        .header h1 {
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            text-shadow: 2px 2px 0 #000, -1px -1px 0 #4a90d9;
+            color: #00d9ff;
+            letter-spacing: 2px;
+        }
+
+        .nav { 
+            display: flex; 
+            gap: 12px; 
+            margin-top: 16px; 
+        }
+
+        .nav a { 
+            color: #fff; 
+            text-decoration: none; 
+            font-size: 14px;
+            font-weight: bold;
+            padding: 10px 16px;
+            background: #16213e;
+            border: 3px solid #000;
+            box-shadow: 3px 3px 0 #000;
+            transition: all 0.1s;
+            border-radius: 4px;
+        }
+
+        .nav a:hover { 
+            background: #1f4068;
+            transform: translate(1px, 1px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .container { 
+            max-width: 1200px; 
+            margin: 30px auto; 
+            padding: 0 20px; 
+        }
+
+        .card { 
+            padding: 24px; 
+            margin-bottom: 24px;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+
+        .card-title { 
+            font-size: 18px; 
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px dashed;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .card-stats { 
+            background: #1a3e2a;
+        }
+        .card-stats::before { background: linear-gradient(90deg, #2ecc71, #27ae60, #1abc9c, #16a085, #f1c40f); }
+        .card-stats .card-title { color: #2ecc71; border-color: rgba(46,204,113,0.3); }
+
+        .card-records { 
+            background: #1a2a3e;
+        }
+        .card-records::before { background: linear-gradient(90deg, #00d9ff, #00ff88, #ffff00, #ff8800, #ff0088); }
+        .card-records .card-title { color: #00d9ff; border-color: rgba(0,217,255,0.3); }
+
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 16px; 
+        }
+
+        .stat-item { 
+            text-align: center; 
+            padding: 20px 14px; 
+            background: #0f0f23;
+            border: 3px solid #000;
+            box-shadow: 4px 4px 0 #000;
+            border-radius: 4px;
+        }
+
+        .stat-value { 
+            font-size: 28px; 
+            font-weight: bold; 
+            text-shadow: 2px 2px 0 #000;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .stat-label { 
+            font-size: 14px; 
+            margin-top: 12px;
+            opacity: 0.9;
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 16px;
+            font-size: 14px;
+            min-width: 800px;
+        }
+
+        th, td { 
+            padding: 14px 10px; 
+            text-align: left; 
+            border-bottom: 2px solid #3a3a5e;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        th { 
+            background: #0f0f23; 
+            color: #4a90d9;
+            border-bottom: 4px solid #000;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        td {
+            max-width: 200px;
+            font-size: 14px;
+        }
+
+        .badge { 
+            display: inline-block; 
+            padding: 6px 12px; 
+            border: 2px solid #000;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            white-space: nowrap;
+            border-radius: 4px;
+        }
+
+        .badge.success { 
+            background: #2ecc71; 
+            color: #000;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .badge.error { 
+            background: #e74c3c; 
+            color: #fff;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .badge.openai { 
+            background: #3498db; 
+            color: #fff;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .badge.anthropic { 
+            background: #9b59b6; 
+            color: #fff;
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .empty { 
+            text-align: center; 
+            color: #6a6a8a; 
+            padding: 40px;
+            font-size: 16px;
+        }
+
+        .progress-bar { 
+            height: 16px; 
+            background: #0f0f23;
+            border: 2px solid #000;
+            margin-top: 12px;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .progress-fill { 
+            height: 100%; 
+            background: #2ecc71;
+            border-right: 2px solid #000;
+            transition: width 0.3s;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        /* 详情模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: #1a2a3e;
+            margin: 5% auto;
+            padding: 24px;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            width: 90%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #00d9ff;
+        }
+
+        .modal-header h3 {
+            color: #00d9ff;
+            font-size: 18px;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .close-btn {
+            background: #e74c3c;
+            color: white;
+            border: 2px solid #000;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 2px 2px 0 #000;
+            transition: all 0.1s;
+            border-radius: 4px;
+        }
+
+        .close-btn:hover {
+            transform: translate(1px, 1px);
+            box-shadow: 1px 1px 0 #000;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            background: #0f0f23;
+            padding: 16px;
+            border: 2px solid #000;
+            box-shadow: 2px 2px 0 #000;
+            border-radius: 4px;
+        }
+
+        .detail-label {
+            color: #4a90d9;
+            font-size: 12px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .detail-value {
+            color: #fff;
+            font-size: 16px;
+            word-break: break-all;
+        }
+
+        .detail-value.error {
+            color: #e74c3c;
+        }
+
+        .clickable {
+            cursor: pointer;
+            color: #00d9ff !important;
+            transition: all 0.2s;
+        }
+
+        .clickable:hover {
+            color: #00ff88 !important;
+            text-decoration: underline;
+        }
+
+        .detail-full {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LLM 代理服务</h1>
+        <div class="nav">
+            <a href="/">💬 对话测试</a>
+            <a href="/config">⚙️ 配置管理</a>
+            <a href="/logs">📋 调用日志</a>
+            <a href="/statistics">📊 统计分析</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card card-stats">
+            <h2 class="card-title">📈 Token 统计概览</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-item">
+                    <div class="stat-value" style="color:#ff6b6b;">加载中...</div>
+                    <div class="stat-label" style="color:#ff6b6b;">总调用次数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:#00d9ff;">加载中...</div>
+                    <div class="stat-label" style="color:#00d9ff;">输入Token</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:#00ff88;">加载中...</div>
+                    <div class="stat-label" style="color:#00ff88;">输出Token</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:#ffff00;">加载中...</div>
+                    <div class="stat-label" style="color:#ffff00;">总Token消耗</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:#ff8800;">加载中...</div>
+                    <div class="stat-label" style="color:#ff8800;">平均响应时间</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" style="color:#ff0088;">加载中...</div>
+                    <div class="stat-label" style="color:#ff0088;">成功率</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card card-records">
+            <h2 class="card-title">📋 最近调用记录</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>⏰ 时间</th>
+                            <th>📝 类型</th>
+                            <th>🤖 模型</th>
+                            <th>📊 状态</th>
+                            <th>⏱️ 耗时</th>
+                            <th>🔢 Token (输入/输出)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentLogsBody">
+                        <tr><td colspan="6" class="empty">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 详情模态框 -->
+    <div id="logModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📋 日志详情</h3>
+                <button class="close-btn" onclick="closeModal()">✕ 关闭</button>
+            </div>
+            <div id="modalBody" class="detail-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        let logsData = [];
+
+        // 格式化大数字为易读格式（万、百万、千万、亿）
+        function formatLargeNumber(num) {
+            num = Number(num) || 0;
+            if (num >= 100000000) {
+                return (num / 100000000).toFixed(2) + '亿';
+            } else if (num >= 10000000) {
+                return (num / 10000000).toFixed(2) + '千万';
+            } else if (num >= 1000000) {
+                return (num / 1000000).toFixed(2) + '百万';
+            } else if (num >= 10000) {
+                return (num / 10000).toFixed(2) + '万';
+            }
+            return num.toLocaleString('zh-CN');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatistics();
+            loadRecentLogs();
+        });
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/logs/statistics');
+                if (response.ok) {
+                    const statistics = await response.json();
+                    renderStatistics(statistics);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function loadRecentLogs() {
+            try {
+                const response = await fetch('/api/logs?limit=10');
+                if (response.ok) {
+                    const data = await response.json();
+                    logsData = data.logs || [];
+                    renderRecentLogs(logsData);
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function renderStatistics(statistics) {
+            const statsGrid = document.getElementById('statsGrid');
+            const totalCalls = (statistics && statistics.total_calls) || 0;
+            const totalInputTokens = (statistics && statistics.total_input_tokens) || 0;
+            const totalOutputTokens = (statistics && statistics.total_output_tokens) || 0;
+            const totalTokens = totalInputTokens + totalOutputTokens;
+            const avgDuration = (statistics && statistics.avg_duration_ms) || 0;
+            const successRate = (statistics && statistics.success_rate) || 0;
+
+            statsGrid.innerHTML = '<div class="stat-item">' +
+                '<div class="stat-value" style="color:#ff6b6b;">💰 ' + formatLargeNumber(totalCalls) + '</div>' +
+                '<div class="stat-label" style="color:#ff6b6b;">总调用次数</div>' +
+                '</div>' +
+                '<div class="stat-item">' +
+                '<div class="stat-value" style="color:#00d9ff;">📥 ' + formatLargeNumber(totalInputTokens) + '</div>' +
+                '<div class="stat-label" style="color:#00d9ff;">输入Token</div>' +
+                '</div>' +
+                '<div class="stat-item">' +
+                '<div class="stat-value" style="color:#00ff88;">📤 ' + formatLargeNumber(totalOutputTokens) + '</div>' +
+                '<div class="stat-label" style="color:#00ff88;">输出Token</div>' +
+                '</div>' +
+                '<div class="stat-item">' +
+                '<div class="stat-value" style="color:#ffff00;">🔢 ' + formatLargeNumber(totalTokens) + '</div>' +
+                '<div class="stat-label" style="color:#ffff00;">总Token消耗</div>' +
+                '</div>' +
+                '<div class="stat-item">' +
+                '<div class="stat-value" style="color:#ff8800;">⏱️ ' + avgDuration + 'ms</div>' +
+                '<div class="stat-label" style="color:#ff8800;">平均响应时间</div>' +
+                '</div>' +
+                '<div class="stat-item">' +
+                '<div class="stat-value" style="color:#ff0088;">✅ ' + (successRate * 100).toFixed(1) + '%</div>' +
+                '<div class="stat-label" style="color:#ff0088;">成功率</div>' +
+                '<div class="progress-bar">' +
+                '<div class="progress-fill" id="progressFill" style="width: ' + Math.min(successRate * 100, 100) + '%"></div>' +
+                '</div>' +
+                '</div>';
+        }
+
+        function renderRecentLogs(recentLogs) {
+            const tbody = document.getElementById('recentLogsBody');
+            if (!recentLogs || recentLogs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">❌ 暂无调用记录</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = recentLogs.map(function(log, index) {
+                return '<tr>' +
+                    '<td class="clickable" onclick="showDetail(' + index + ')" style="white-space:nowrap; font-weight:bold;">' + new Date(log.created_at).toLocaleString('zh-CN') + '</td>' +
+                    '<td><span class="badge ' + (log.request_type.toLowerCase() === 'openai' ? 'openai' : 'anthropic') + '">' + log.request_type + '</span></td>' +
+                    '<td style="color:#00d9ff; font-weight:bold;">' + (log.model_name || '-') + '</td>' +
+                    '<td><span class="badge ' + (log.status_code === 200 ? 'success' : 'error') + '">' + log.status_code + '</span></td>' +
+                    '<td>' + log.duration_ms + 'ms</td>' +
+                    '<td>' + (log.input_tokens || 0) + ' / ' + (log.output_tokens || 0) + '</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function showDetail(index) {
+            const log = logsData[index];
+            if (!log) return;
+
+            let html = '<div class="detail-item"><div class="detail-label">⏰ 时间</div><div class="detail-value">' + new Date(log.created_at).toLocaleString('zh-CN') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">📝 类型</div><div class="detail-value"><span class="badge ' + log.request_type.toLowerCase() + '">' + log.request_type + '</span></div></div>' +
+                '<div class="detail-item"><div class="detail-label">🤖 模型</div><div class="detail-value">' + (log.model_name || '-') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">📊 状态</div><div class="detail-value"><span class="badge ' + (log.status_code === 200 ? 'success' : 'error') + '">' + log.status_code + '</span></div></div>' +
+                '<div class="detail-item"><div class="detail-label">⏱️ 耗时</div><div class="detail-value">' + log.duration_ms + 'ms</div></div>' +
+                '<div class="detail-item"><div class="detail-label">📥 输入Token</div><div class="detail-value">' + formatLargeNumber(log.input_tokens || 0) + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">📤 输出Token</div><div class="detail-value">' + formatLargeNumber(log.output_tokens || 0) + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">📊 总Token</div><div class="detail-value">' + formatLargeNumber((log.input_tokens || 0) + (log.output_tokens || 0)) + '</div></div>';
+
+            if (log.error_message) {
+                html += '<div class="detail-item detail-full"><div class="detail-label">❌ 错误信息</div><div class="detail-value error">' + log.error_message + '</div></div>';
+            }
+
+            if (log.request_body) {
+                html += '<div class="detail-item detail-full"><div class="detail-label">📋 请求内容</div><div class="detail-value"><pre style="white-space:pre-wrap;word-wrap:break-word;margin:0;font-size:12px;">' + escapeHtml(log.request_body) + '</pre></div></div>';
+            }
+
+            if (log.response_body) {
+                html += '<div class="detail-item detail-full"><div class="detail-label">📤 响应内容</div><div class="detail-value"><pre style="white-space:pre-wrap;word-wrap:break-word;margin:0;font-size:12px;">' + escapeHtml(log.response_body) + '</pre></div></div>';
+            }
+
+            document.getElementById('modalBody').innerHTML = html;
+            document.getElementById('logModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('logModal').style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('logModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+
+    </script>
+</body>
+</html>
